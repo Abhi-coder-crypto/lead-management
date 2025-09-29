@@ -5,6 +5,9 @@
   # Directory to publish (where build output goes)
   publish = "dist/public"
   
+  # Functions directory
+  functions = "netlify/functions"
+  
   # Set Node.js version
   [build.environment]
     NODE_VERSION = "20"
@@ -24,19 +27,97 @@
 [build.processing.html]
   pretty_urls = true
 
-# Redirect all routes to index.html for client-side routing
+# API function redirects - map API routes to Netlify Functions
+[[redirects]]
+  from = "/api/auth/register"
+  to = "/.netlify/functions/auth-register"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/login"
+  to = "/.netlify/functions/auth-login"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/me"
+  to = "/.netlify/functions/auth-me"
+  status = 200
+
+[[redirects]]
+  from = "/api/leads/export/csv"
+  to = "/.netlify/functions/leads-export-csv"
+  status = 200
+
+[[redirects]]
+  from = "/api/leads/:id/notes"
+  to = "/.netlify/functions/leads-notes/:id"
+  status = 200
+
+[[redirects]]
+  from = "/api/leads/:id"
+  to = "/.netlify/functions/leads-detail/:id"
+  status = 200
+
+[[redirects]]
+  from = "/api/leads"
+  to = "/.netlify/functions/leads"
+  status = 200
+
+[[redirects]]
+  from = "/api/reminders/:id/complete"
+  to = "/.netlify/functions/reminders-complete/:id/complete"
+  status = 200
+
+[[redirects]]
+  from = "/api/reminders/:id"
+  to = "/.netlify/functions/reminders-detail/:id"
+  status = 200
+
+[[redirects]]
+  from = "/api/reminders"
+  to = "/.netlify/functions/reminders"
+  status = 200
+
+[[redirects]]
+  from = "/api/activities"
+  to = "/.netlify/functions/activities"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics/metrics"
+  to = "/.netlify/functions/analytics-metrics"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics/leads-by-status"
+  to = "/.netlify/functions/analytics-leads-by-status"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics/leads-by-source"
+  to = "/.netlify/functions/analytics-leads-by-source"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics/conversion-trend"
+  to = "/.netlify/functions/analytics-conversion-trend"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics/metrics-trends"
+  to = "/.netlify/functions/analytics-metrics-trends"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics/monthly-metrics"
+  to = "/.netlify/functions/analytics-monthly-metrics"
+  status = 200
+
+# Redirect all other routes to index.html for client-side routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-# API routes - for production, you'll need to deploy your backend separately
-# and update this URL to your deployed backend
-# [[redirects]]
-#   from = "/api/*"
-#   to = "https://your-backend-deployment.herokuapp.com/api/:splat"
-#   status = 200
-#   force = true
 
 # Security headers
 [[headers]]
@@ -53,12 +134,8 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Environment variables - IMPORTANT: Set these in your Netlify dashboard under Site settings > Environment variables
+# Environment variables - Set these in your Netlify dashboard under Site settings > Environment variables
 # 
-# Required for production:
-# VITE_API_URL = "https://your-backend-deployment.herokuapp.com" (or wherever you deploy the backend)
-# 
-# For the backend deployment (separate), you'll need:
+# Required:
 # MONGODB_URI = "your-mongodb-connection-string"
-# JWT_SECRET = "your-jwt-secret"
-# NODE_ENV = "production"
+# JWT_SECRET = "your-jwt-secret" (optional - will use fallback if not set)
