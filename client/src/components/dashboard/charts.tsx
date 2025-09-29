@@ -1,12 +1,22 @@
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, Tooltip, Legend } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ActivityFeed from "./activity-feed";
 import { useState } from "react";
+
+interface Activity {
+  id: string;
+  action: "created" | "updated" | "status_changed" | "note_added";
+  description: string;
+  createdAt: string;
+  metadata?: any;
+}
 
 interface ChartsProps {
   statusData: { status: string; count: number }[];
   sourceData: { source: string; count: number }[];
   conversionData: { date: string; count: number }[];
+  activities: Activity[];
   onStatusPeriodChange?: (period: string) => void;
   onSourcePeriodChange?: (period: string) => void;
   onConversionPeriodChange?: (period: string) => void;
@@ -38,7 +48,8 @@ const SOURCE_COLORS = {
 export default function Charts({ 
   statusData, 
   sourceData, 
-  conversionData, 
+  conversionData,
+  activities,
   onStatusPeriodChange,
   onSourcePeriodChange,
   onConversionPeriodChange
@@ -120,7 +131,7 @@ export default function Charts({
   return (
     <>
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Leads by Status Chart */}
         <Card className="p-6 shadow-sm border border-border">
           <CardHeader className="flex flex-row items-center justify-between p-0 mb-6">
@@ -408,6 +419,11 @@ export default function Charts({
             </div>
           </CardContent>
         </Card>
+        
+        {/* Recent Activity Feed */}
+        <div className="lg:col-span-1">
+          <ActivityFeed activities={activities} />
+        </div>
       </div>
     </>
   );

@@ -11,7 +11,11 @@ import {
   LogOut
 } from "lucide-react";
 
-export default function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export default function Sidebar({ onClose }: SidebarProps = {}) {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
 
@@ -35,7 +39,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-card border-r border-border flex flex-col">
+    <div className="w-64 bg-card border-r border-border flex flex-col h-full lg:h-auto relative">
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">

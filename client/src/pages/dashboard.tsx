@@ -10,7 +10,11 @@ import { Download, Plus } from "lucide-react";
 import { useState } from "react";
 import AddLeadModal from "@/components/leads/add-lead-modal";
 
-export default function Dashboard() {
+interface DashboardProps {
+  onMenuClick?: () => void;
+}
+
+export default function Dashboard({ onMenuClick }: DashboardProps = {}) {
   const [addLeadModalOpen, setAddLeadModalOpen] = useState(false);
   const [statusPeriod, setStatusPeriod] = useState<string>('month');
   const [sourcePeriod, setSourcePeriod] = useState<string>('month');
@@ -71,6 +75,7 @@ export default function Dashboard() {
       <Topbar
         title="Dashboard"
         subtitle="Welcome back! Here's your lead overview."
+        onMenuClick={onMenuClick}
         actions={
           <>
             <Button variant="secondary" onClick={handleExport} data-testid="button-export">
@@ -103,18 +108,11 @@ export default function Dashboard() {
             statusData={statusData}
             sourceData={sourceData}
             conversionData={conversionData}
+            activities={activities}
             onStatusPeriodChange={setStatusPeriod}
             onSourcePeriodChange={setSourcePeriod}
             onConversionPeriodChange={setConversionPeriod}
           />
-
-          {/* Activity Feed (takes remaining space in charts grid) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              {/* This space is used by the conversion trend chart above */}
-            </div>
-            <ActivityFeed activities={activities} />
-          </div>
 
           {/* Today's Reminders Widget */}
           <RemindersWidget reminders={reminders} />
