@@ -1,172 +1,174 @@
-import { pgTable, serial, varchar, text, timestamp, boolean, json, integer } from 'drizzle-orm/pg-core';
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
-import { relations } from 'drizzle-orm';
+import mongoose, { Schema, Document } from 'mongoose';
 import { z } from 'zod';
 
-// Drizzle PostgreSQL Schema Definitions
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  password: varchar('password', { length: 255 }).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+// MongoDB Schema Definitions
+const userSchema = new Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
 });
 
-export const leads = pgTable('leads', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  email: varchar('email', { length: 255 }),
-  phone: varchar('phone', { length: 50 }),
-  company: varchar('company', { length: 255 }),
-  source: varchar('source', { length: 50 }).notNull().$type<'Website' | 'Referral' | 'Ad' | 'Other'>(),
-  status: varchar('status', { length: 50 }).notNull().default('New').$type<'New' | 'Contacted' | 'Qualified' | 'Converted' | 'Lost'>(),
-  tags: text('tags').array().default([]),
-  statusHistory: json('status_history').$type<Array<{
+const leadSchema = new Schema({
+  name: { type: String, required: true },
+  email: { type: String },
+  phone: { type: String },
+  company: { type: String },
+  source: { 
+    type: String, 
+    required: true,
+    enum: ['Website', 'Referral', 'Ad', 'Other']
+  },
+  status: { 
+    type: String, 
+    required: true, 
+    default: 'New',
+    enum: ['New', 'Contacted', 'Qualified', 'Converted', 'Lost']
+  },
+  tags: { type: [String], default: [] },
+  statusHistory: [{
+    status: { type: String, required: true },
+    changedAt: { type: Date, default: Date.now },
+    changedBy: { type: Schema.Types.ObjectId, ref: 'User' }
+  }],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+});
+
+const noteSchema = new Schema({
+  text: { type: String, required: true },
+  leadId: { type: Schema.Types.ObjectId, ref: 'Lead', required: true },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const activitySchema = new Schema({
+  action: { 
+    type: String, 
+    required: true,
+    enum: ['created', 'updated', 'status_changed', 'note_added']
+  },
+  description: { type: String, required: true },
+  leadId: { type: Schema.Types.ObjectId, ref: 'Lead' },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  metadata: { type: Schema.Types.Mixed },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const reminderSchema = new Schema({
+  title: { type: String, required: true },
+  message: { type: String, required: true },
+  dueDate: { type: Date, required: true },
+  completed: { type: Boolean, default: false },
+  leadId: { type: Schema.Types.ObjectId, ref: 'Lead', required: true },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+// Document Interfaces
+export interface IUser extends Document {
+  _id: string;
+  name: string;
+  email: string;
+  password: string;
+  createdAt: Date;
+}
+
+export interface ILead extends Document {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  source: 'Website' | 'Referral' | 'Ad' | 'Other';
+  status: 'New' | 'Contacted' | 'Qualified' | 'Converted' | 'Lost';
+  tags: string[];
+  statusHistory: Array<{
     status: string;
     changedAt: Date;
-    changedBy?: number;
-  }>>().default([]),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  userId: integer('user_id').notNull().references(() => users.id),
-});
+    changedBy?: string;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+}
 
-export const notes = pgTable('notes', {
-  id: serial('id').primaryKey(),
-  text: text('text').notNull(),
-  leadId: integer('lead_id').notNull().references(() => leads.id),
-  userId: integer('user_id').notNull().references(() => users.id),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export interface INote extends Document {
+  _id: string;
+  text: string;
+  leadId: string;
+  userId: string;
+  createdAt: Date;
+}
 
-export const activities = pgTable('activities', {
-  id: serial('id').primaryKey(),
-  action: varchar('action', { length: 50 }).notNull().$type<'created' | 'updated' | 'status_changed' | 'note_added'>(),
-  description: text('description').notNull(),
-  leadId: integer('lead_id').references(() => leads.id),
-  userId: integer('user_id').notNull().references(() => users.id),
-  metadata: json('metadata'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export interface IActivity extends Document {
+  _id: string;
+  action: 'created' | 'updated' | 'status_changed' | 'note_added';
+  description: string;
+  leadId?: string;
+  userId: string;
+  metadata?: any;
+  createdAt: Date;
+}
 
-export const reminders = pgTable('reminders', {
-  id: serial('id').primaryKey(),
-  title: varchar('title', { length: 255 }).notNull(),
-  message: text('message').notNull(),
-  dueDate: timestamp('due_date').notNull(),
-  completed: boolean('completed').default(false).notNull(),
-  leadId: integer('lead_id').notNull().references(() => leads.id),
-  userId: integer('user_id').notNull().references(() => users.id),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export interface IReminder extends Document {
+  _id: string;
+  title: string;
+  message: string;
+  dueDate: Date;
+  completed: boolean;
+  leadId: string;
+  userId: string;
+  createdAt: Date;
+}
 
-// Drizzle Relations
-export const usersRelations = relations(users, ({ many }) => ({
-  leads: many(leads),
-  notes: many(notes),
-  activities: many(activities),
-  reminders: many(reminders),
-}));
-
-export const leadsRelations = relations(leads, ({ one, many }) => ({
-  user: one(users, {
-    fields: [leads.userId],
-    references: [users.id],
-  }),
-  notes: many(notes),
-  activities: many(activities),
-  reminders: many(reminders),
-}));
-
-export const notesRelations = relations(notes, ({ one }) => ({
-  lead: one(leads, {
-    fields: [notes.leadId],
-    references: [leads.id],
-  }),
-  user: one(users, {
-    fields: [notes.userId],
-    references: [users.id],
-  }),
-}));
-
-export const activitiesRelations = relations(activities, ({ one }) => ({
-  lead: one(leads, {
-    fields: [activities.leadId],
-    references: [leads.id],
-  }),
-  user: one(users, {
-    fields: [activities.userId],
-    references: [users.id],
-  }),
-}));
-
-export const remindersRelations = relations(reminders, ({ one }) => ({
-  lead: one(leads, {
-    fields: [reminders.leadId],
-    references: [leads.id],
-  }),
-  user: one(users, {
-    fields: [reminders.userId],
-    references: [users.id],
-  }),
-}));
-
-// Type exports
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-export type Lead = typeof leads.$inferSelect;
-export type InsertLead = typeof leads.$inferInsert;
-export type Note = typeof notes.$inferSelect;
-export type InsertNote = typeof notes.$inferInsert;
-export type Activity = typeof activities.$inferSelect;
-export type InsertActivity = typeof activities.$inferInsert;
-export type Reminder = typeof reminders.$inferSelect;
-export type InsertReminder = typeof reminders.$inferInsert;
-
-// Interface aliases for compatibility
-export type IUser = User;
-export type ILead = Lead;
-export type INote = Note;
-export type IActivity = Activity;
-export type IReminder = Reminder;
+// MongoDB Models
+export const User = mongoose.model<IUser>('User', userSchema);
+export const Lead = mongoose.model<ILead>('Lead', leadSchema);
+export const Note = mongoose.model<INote>('Note', noteSchema);
+export const Activity = mongoose.model<IActivity>('Activity', activitySchema);
+export const Reminder = mongoose.model<IReminder>('Reminder', reminderSchema);
 
 // Zod validation schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
+export const insertUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(1),
 });
 
-export const insertLeadSchema = createInsertSchema(leads).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  userId: z.number(),
+export const insertLeadSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  company: z.string().optional(),
+  source: z.enum(['Website', 'Referral', 'Ad', 'Other']),
+  status: z.enum(['New', 'Contacted', 'Qualified', 'Converted', 'Lost']).default('New'),
+  tags: z.array(z.string()).default([]),
+  userId: z.string(),
 });
 
-export const insertNoteSchema = createInsertSchema(notes).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  leadId: z.number(),
-  userId: z.number(),
+export const insertNoteSchema = z.object({
+  text: z.string().min(1),
+  leadId: z.string(),
+  userId: z.string(),
 });
 
-export const insertActivitySchema = createInsertSchema(activities).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  leadId: z.number().optional(),
-  userId: z.number(),
+export const insertActivitySchema = z.object({
+  action: z.enum(['created', 'updated', 'status_changed', 'note_added']),
+  description: z.string().min(1),
+  leadId: z.string().optional(),
+  userId: z.string(),
+  metadata: z.any().optional(),
 });
 
-export const insertReminderSchema = createInsertSchema(reminders).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  leadId: z.number(),
-  userId: z.number(),
-  dueDate: z.date(),
+export const insertReminderSchema = z.object({
+  title: z.string().min(1),
+  message: z.string().min(1),
+  dueDate: z.string().transform((val) => new Date(val)),
+  completed: z.boolean().default(false),
+  leadId: z.string(),
+  userId: z.string(),
 });
 
 export const loginSchema = z.object({
@@ -174,10 +176,23 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+// Type exports for compatibility
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type InsertNote = z.infer<typeof insertNoteSchema>;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type InsertReminder = z.infer<typeof insertReminderSchema>;
 export type LoginData = z.infer<typeof loginSchema>;
 
-export type LeadWithNotes = Lead & {
-  notes: Note[];
-  activities: Activity[];
-  reminders: Reminder[];
+export type LeadWithNotes = ILead & {
+  notes: INote[];
+  activities: IActivity[];
+  reminders: IReminder[];
 };
+
+// For backward compatibility, create aliases
+export type User = IUser;
+export type Lead = ILead;
+export type Note = INote;
+export type Activity = IActivity;
+export type Reminder = IReminder;
