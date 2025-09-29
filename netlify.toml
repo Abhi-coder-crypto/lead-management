@@ -1,6 +1,6 @@
 [build]
-  # Build command for the frontend
-  command = "npm run build"
+  # Build command for the frontend with legacy peer deps
+  command = "npm run build:netlify"
   
   # Directory to publish (where build output goes)
   publish = "dist/public"
@@ -30,12 +30,13 @@
   to = "/index.html"
   status = 200
 
-# API routes - redirect to external backend (you'll need to update the URL)
-[[redirects]]
-  from = "/api/*"
-  to = "https://your-backend-deployment.herokuapp.com/api/:splat"
-  status = 200
-  force = true
+# API routes - for production, you'll need to deploy your backend separately
+# and update this URL to your deployed backend
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://your-backend-deployment.herokuapp.com/api/:splat"
+#   status = 200
+#   force = true
 
 # Security headers
 [[headers]]
@@ -52,6 +53,12 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Environment variables (set these in Netlify dashboard)
-# VITE_API_URL = "https://your-backend-deployment.herokuapp.com"
+# Environment variables - IMPORTANT: Set these in your Netlify dashboard under Site settings > Environment variables
+# 
+# Required for production:
+# VITE_API_URL = "https://your-backend-deployment.herokuapp.com" (or wherever you deploy the backend)
+# 
+# For the backend deployment (separate), you'll need:
 # MONGODB_URI = "your-mongodb-connection-string"
+# JWT_SECRET = "your-jwt-secret"
+# NODE_ENV = "production"

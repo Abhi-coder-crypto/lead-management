@@ -7,8 +7,16 @@ export class ApiError extends Error {
   }
 }
 
+// Get API base URL from environment variable, fallback to empty string for relative URLs
+const getApiBaseUrl = () => {
+  return import.meta.env.VITE_API_URL || '';
+};
+
 async function apiCall(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(endpoint, {
+  const baseUrl = getApiBaseUrl();
+  const fullUrl = `${baseUrl}${endpoint}`;
+  
+  const response = await fetch(fullUrl, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -127,7 +135,8 @@ export const api = {
   // Export
   exportLeadsCSV: async () => {
     try {
-      const response = await fetch('/api/leads/export/csv', {
+      const baseUrl = getApiBaseUrl();
+      const response = await fetch(`${baseUrl}/api/leads/export/csv`, {
         headers: {
           ...getAuthHeaders()
         }
